@@ -4,16 +4,14 @@
 =#
 #################################################################################################
 
-# using ForwardDiff
-using Distributions
 
-# Dynamics model
-abstract type AbstractModel end
+
+using ForwardDiff
 
 export CartPole
 
 # Cart pole dynamics as a Julia class
-mutable struct CartPole <: AbstractModel
+struct CartPole
     x_dim::Int64 # total state dimension
     u_dim::Int64 # total control input dimension
 
@@ -39,9 +37,6 @@ mutable struct CartPole <: AbstractModel
     Q::AbstractArray{Float64,2}  # state running cost weight matrix
     R::AbstractArray{Float64,2}  # control running cost weight matrix
 
-    variance::Float64
-    distribution::Normal{Float64}
-
     conv_tol::Float64 # convergence tolerance
     max_ite::Int64 # maximum iteration threshhold
 end
@@ -49,7 +44,7 @@ end
 # Define the model struct with parameters
 function CartPole()
     x_dim = 4
-    u_dim = 1
+    u_dim = 2
 
     x_init = [0, 0, pi/6, 0]
     x_final = [0, 0, pi, 0]
@@ -65,14 +60,10 @@ function CartPole()
     g = 9.81
 
     
-    F = Diagonal([1e-0 * [1; 1]; 1e-0 * [1; 1]])
-    Q = zeros(4,4) # Diagonal([1e-0 * [1; 1]; 1e-0 * [1; 1]])
-    R = Diagonal([1])
+    F = Diagonal([1e+2 * [1; 1]; 1e+2 * [1; 1]])
+    Q = zeros(4,4) 
+    R = Diagonal(1e-3*[1, 1])
 
-    mean = 0.0
-    variance = 1e+0
-    deviation = sqrt(variance)
-    distribution = Normal(mean, deviation)
     conv_tol = 1e-5
     max_ite = 10
 
@@ -92,8 +83,6 @@ function CartPole()
         F,
         Q,
         R,
-        variance,
-        distribution,
         conv_tol,
         max_ite,
     )
@@ -115,7 +104,12 @@ The dynamic equation of motion.
 # Returns
 - `ẋ`: time derivative of nonlinear equation of motion
 """
-function dynamics(model::CartPole, x::Vector{Float64}, u::Vector{Float64}, t::Float64, step::Int64)
+function dynamics(
+    model::CartPole, 
+    x::Vector, 
+    u::Vector, 
+    t::Float64, step::Int64
+)
     mc = model.mc
     mp = model.mp
     l = model.l
@@ -136,3 +130,14 @@ function dynamics(model::CartPole, x::Vector{Float64}, u::Vector{Float64}, t::Fl
     return ẋ
 end 
 
+function get_jacobian(
+    model::CartPole, 
+    x::AbstractArray{Float64,1},
+    u::AbstractArray{Float64,1},
+    t::Int64,
+)   
+    fx = ForwardDiff.jacobian(x -> dynamics(model, x, u, 0.0, t), x)
+    fu = ForwardDiff.jacobian(u -> dynamics(model, x, u, 0.0, t), u)
+
+    return fx, fu
+end

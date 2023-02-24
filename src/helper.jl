@@ -3,15 +3,10 @@
     helper funcitons
 =#
 
-using Random
-
-# Dynamics model
-abstract type AbstractModel end 
-
-export dp45_step,
-       initialize_trajectory,
-       rk4_step,
-       get_trajectory
+export 
+    initialize_trajectory,
+    rk4_step,
+    simulate_trajectory
 
 """
     initialize_trajectory(model, tN)
@@ -27,7 +22,7 @@ Initialize the state and control trajectory
 - U
 """
 function initialize_trajectory(
-    model::AbstractModel, 
+    model::Any, 
     tN::Int64; 
     x_init=model.x_init, 
     dt=model.dt,
@@ -57,8 +52,8 @@ simulate dynamics given initial condition and control sequence
 # Arguments
 
 """
-function get_trajectory(
-    model::AbstractModel,
+function simulate_trajectory(
+    model::Any,
     x0::AbstractArray{Float64,1},
     U::AbstractArray{Float64,2},
     dt::Float64=model.dt;
@@ -98,7 +93,7 @@ Returns one step of runge-kutta ode step with fixed time length
 
 """
 function rk4_step(
-    model::AbstractModel,
+    model::Any,
     f::Function,
     t::Int64,
     x::AbstractArray{Float64,1},
@@ -112,13 +107,4 @@ function rk4_step(
     k4 = f(model, x + h * k3, u, t + h, t)
 
     return (k1 + 2 * k2 + 2 * k3 + k4)/6
-end
-
-function isposdef(A::AbstractArray{Float64,2})
-    eigs = eigvals(A)
-	if any(real(eigs) <= 0)
-		return false
-	else
-		return true
-	end
 end
